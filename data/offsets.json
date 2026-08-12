@@ -1,0 +1,217 @@
+[
+ {
+  "name": "FIRST_CHAR_SLOT_USED",
+  "offset": 4,
+  "comment": "Header Data Size 1"
+ },
+ {
+  "name": "SECOND_CHAR_SLOT_USED",
+  "offset": 5,
+  "comment": "Size 1"
+ },
+ {
+  "name": "THIRD_CHAR_SLOT_USED",
+  "offset": 6,
+  "comment": "Size 1"
+ },
+ {
+  "name": "FIRST_CHARACTER_OFFSET",
+  "offset": 16,
+  "comment": "Size 4"
+ },
+ {
+  "name": "SECOND_CHARACTER_OFFSET",
+  "offset": 20,
+  "comment": "Size 4"
+ },
+ {
+  "name": "THIRD_CHARACTER_OFFSET",
+  "offset": 24,
+  "comment": "Size 4"
+ },
+ {
+  "name": "NAME_OFFSET",
+  "offset": 146301,
+  "comment": "Character Offsets [CHARACTER BASE +  CHARACTER OFFSET] size 4"
+ },
+ {
+  "name": "PLAY_TIME_OFFSET",
+  "offset": 32,
+  "comment": "Size 4m this only shows on the save screen"
+ },
+ {
+  "name": "PLAY_TIME_OFFSET2",
+  "offset": 140427,
+  "comment": "Size 4"
+ },
+ {
+  "name": "FUNDS_OFFSET",
+  "offset": 36,
+  "comment": "Size 4, this only shows on the save screen"
+ },
+ {
+  "name": "FUNDS_OFFSET2",
+  "offset": 10255,
+  "comment": "size 4"
+ },
+ {
+  "name": "HUNTER_RANK_OFFSET",
+  "offset": 40,
+  "comment": "Size 2"
+ },
+ {
+  "name": "CHARACTER_VOICE_OFFSET",
+  "offset": 146248,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_EYE_COLOR_OFFSET",
+  "offset": 146249,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_CLOTHING_OFFSET",
+  "offset": 146250,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_GENDER_OFFSET",
+  "offset": 146251,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_HUNTINGSTYLE_OFFSET",
+  "offset": 146252,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_HAIRSTYLE_OFFSET",
+  "offset": 146253,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_FACE_OFFSET",
+  "offset": 146254,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_FEATURES_OFFSET",
+  "offset": 146255,
+  "comment": "Size 1"
+ },
+ {
+  "name": "CHARACTER_SKIN_COLOR_OFFSET",
+  "offset": 146279,
+  "comment": "Size 4"
+ },
+ {
+  "name": "CHARACTER_FEATURES_COLOR_OFFSET",
+  "offset": 146287,
+  "comment": "Size 4"
+ },
+ {
+  "name": "PALICO_OFFSET",
+  "offset": 146358,
+  "comment": "Palico Size 27216 (84 of them each 324 bytes long)"
+ },
+ {
+  "name": "HR_POINTS_OFFSET",
+  "offset": 10251,
+  "comment": "Points Size 4"
+ },
+ {
+  "name": "ACADEMY_POINTS_OFFSET",
+  "offset": 10263,
+  "comment": "Size 4"
+ },
+ {
+  "name": "BHERNA_POINTS_OFFSET",
+  "offset": 10267,
+  "comment": "Size 4"
+ },
+ {
+  "name": "KOKOTO_POINTS_OFFSET",
+  "offset": 10271,
+  "comment": "Size 4"
+ },
+ {
+  "name": "POKKE_POINTS_OFFSET",
+  "offset": 10275,
+  "comment": "Size 4"
+ },
+ {
+  "name": "YUKUMO_POINTS_OFFSET",
+  "offset": 10279,
+  "comment": "Size 4"
+ },
+ {
+  "name": "MONSTERHUNT_OFFSETS",
+  "offset": 24230,
+  "comment": "Monster Hunts / Sizes Size 274, 137 Monsters (supposedly) 2 bytes each"
+ },
+ {
+  "name": "MONSTERCAPTURE_OFFSETS",
+  "offset": 24504,
+  "comment": "Size 274,137 Monsters (supposedly) 2 bytes each"
+ },
+ {
+  "name": "MONSTERSIZE_OFFSETS",
+  "offset": 24778,
+  "comment": "Size 548, 4 bytes per monster"
+ },
+ {
+  "name": "ITEM_BOX_OFFSET",
+  "offset": 632,
+  "comment": "Items, Equips, Pouch Size 5463 (2300 of them each 19 bits long)"
+ },
+ {
+  "name": "EQUIPMENT_BOX_OFFSET",
+  "offset": 25326,
+  "comment": "Size 72000 (2000 of them each 36 bytes long)"
+ },
+ {
+  "name": "PALICO_EQUIPMENT_OFFSET",
+  "offset": 97326,
+  "comment": "Size 36000 (1000 of them 36 bytes long)"
+ },
+ {
+  "name": "GUILCARD_OFFSET",
+  "offset": 815549,
+  "comment": "Player Guild Card"
+ },
+ {
+  "name": "GUILDCARD_HUNTINGSTYLE_OFFSET",
+  "offset": 815578,
+  "comment": "public const int GUILDCARD_WEAPONTYPE_OFFSET = 0XC71D5; //Size 1 Size 1"
+ },
+ {
+  "name": "GUILDCARD_HAIRSTYLE_OFFSET",
+  "offset": 815579,
+  "comment": "Size 1"
+ },
+ {
+  "name": "GUILDCARD_FACE_OFFSET",
+  "offset": 815580,
+  "comment": "Size 1"
+ },
+ {
+  "name": "GUILDCARD_FEATURES_OFFSET",
+  "offset": 815581,
+  "comment": "Size 1"
+ },
+ {
+  "name": "GUILDCARD_ARENA_LOG_OFFSET",
+  "offset": 820193,
+  "comment": "public const int GUILDCARD_ARENA_WEAPON_OFFSET = 0XC7AB3; //Size 30 Size 324"
+ },
+ {
+  "name": "MANUAL_SHOUTOUT_OFFSETS",
+  "offset": 1168937,
+  "comment": "Shoutouts Size 60"
+ },
+ {
+  "name": "AUTOMATIC_SHOUTOUT_OFFSETS",
+  "offset": 1171817,
+  "comment": "Size 60"
+ }
+]

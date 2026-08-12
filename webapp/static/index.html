@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MHXX AI Research Studio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="logo">MHXX</span>
+    <span class="title">AI Research Studio</span>
+    <span class="sub">二进制存档逆向分析平台 · 无依赖</span>
+  </div>
+  <div class="actions">
+    <label class="btn">
+      打开存档<input type="file" id="fileInput" accept="*" hidden>
+    </label>
+    <button class="btn" id="btnSave">保存到磁盘</button>
+    <span id="saveStatus" class="status">未加载</span>
+  </div>
+</header>
+
+<main>
+  <!-- 左栏:偏移表 + 常量表 -->
+  <aside class="panel" id="leftPanel">
+    <div class="panel-head">
+      <span>已知偏移</span>
+      <input id="offsetSearch" placeholder="搜索偏移名..." class="search">
+    </div>
+    <div class="panel-body" id="offsetList"></div>
+    <div class="panel-head">
+      <span>常量表 (ID→名称)</span>
+      <input id="constSearch" placeholder="搜索表名..." class="search">
+    </div>
+    <div class="panel-body" id="constList"></div>
+  </aside>
+
+  <!-- 中栏:Hex 查看器 -->
+  <section class="panel" id="midPanel">
+    <div class="panel-head">
+      <span>Hex 查看器</span>
+      <div class="nav-controls">
+        <label>偏移 <input id="gotoOffset" placeholder="0x0" class="mini-input"></label>
+        <button class="btn small" id="btnGoto">跳转</button>
+        <label>长度 <input id="viewLength" value="0x200" class="mini-input" style="width:70px"></label>
+        <button class="btn small" id="btnRefresh">刷新</button>
+      </div>
+    </div>
+    <div class="hex-toolbar">
+      <span id="hexInfo"></span>
+      <span class="spacer"></span>
+      <label>补丁: 偏移 <input id="patchOffset" placeholder="0x0" class="mini-input" style="width:70px"></label>
+      <label>字节(hex) <input id="patchHex" placeholder="00 FF 10" class="mini-input" style="width:180px"></label>
+      <button class="btn small" id="btnPatch">打补丁</button>
+      <button class="btn small" id="btnDiff">对比磁盘</button>
+    </div>
+    <div class="panel-body hex-body" id="hexView"></div>
+  </section>
+
+  <!-- 右栏:数值解析 + 研究面板 -->
+  <aside class="panel" id="rightPanel">
+    <div class="panel-head"><span>数值解析</span></div>
+    <div class="panel-body">
+      <div class="parse-row">
+        <input id="parseOffset" placeholder="偏移 (0x...)" class="search">
+        <select id="parseType">
+          <option value="u8">uint8</option>
+          <option value="u16">uint16 LE</option>
+          <option value="u32" selected>uint32 LE</option>
+          <option value="i32">int32 LE</option>
+          <option value="float">float LE</option>
+          <option value="str">string</option>
+        </select>
+        <button class="btn small" id="btnParse">解析</button>
+      </div>
+      <div id="parseResult" class="parse-result"></div>
+    </div>
+
+    <div class="panel-head"><span>实验记录</span><button class="btn small" id="btnNewExp">新建</button></div>
+    <div class="panel-body" id="expList"><div class="hint">暂无实验</div></div>
+
+    <div class="panel-head"><span>知识库</span></div>
+    <div class="panel-body" id="knowledgeBox">
+      <div class="hint">加载中...</div>
+    </div>
+  </aside>
+</main>
+
+<!-- 实验弹窗 -->
+<div class="modal" id="expModal" hidden>
+  <div class="modal-box">
+    <h3>新建实验记录</h3>
+    <label>标题 <input id="expTitle" class="full-input" placeholder="如: 验证 FONDS_OFFSET 是否影响金钱显示"></label>
+    <label>假设 <textarea id="expHypo" rows="2" placeholder="我猜测偏移 0x24 是金钱..."></textarea></label>
+    <label>方法 <textarea id="expMethod" rows="2" placeholder="将 0x24 写入 FF FF FF 00, 观察游戏内金钱变化"></textarea></label>
+    <label>证据 <textarea id="expEvidence" rows="2" placeholder="游戏内截图/观察记录"></textarea></label>
+    <label>结论 <textarea id="expConcl" rows="2" placeholder="确认/否定假设, 及后续建议"></textarea></label>
+    <div class="modal-actions">
+      <button class="btn" id="btnExpCancel">取消</button>
+      <button class="btn primary" id="btnExpSubmit">提交记录</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
