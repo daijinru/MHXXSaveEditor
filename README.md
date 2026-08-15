@@ -4,6 +4,9 @@ This project has been discontinued as I have moved on from MHXX for the 3DS.
 If you are looking for a MHXX save editor for the Switch version, please refer to [this](https://github.com/Dawnshifter/MHXXSwitchSaveEditor) instead.  
 And if you're looking for a MHGU save editor, please refer to [this](https://gbatemp.net/threads/mhgu-save-editor.515460/) instead. 
 
+<!-- 插入图片 -->
+![界面](./docs/20260815135153.png)
+
 ## Description
 
 A save editor for Monster Hunter XX for the Nintendo 3DS/2DS, not the Switch version.  
