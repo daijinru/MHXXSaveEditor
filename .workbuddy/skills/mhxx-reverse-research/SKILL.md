@@ -65,12 +65,15 @@ curl -X POST http://127.0.0.1:8765/api/save/load \
 
 ```bash
 # 示例：验证 FUNDS_OFFSET=0x24 是金钱（uint32 LE）
-# 读当前值
-curl "http://127.0.0.1:8765/api/save/bytes?offset=0x24&length=4"
-# 改 123456（注意：offset 参数可写 0x24，但 JSON body 里不能写 0x 字面量！）
+# ⚠️ 关键：0x24 是「槽相对」偏移，绝对地址 = 槽指针 + 0x24
+# 先查槽指针（status 返回 slotPtrs，槽1起点通常为 0x126474 这类值）
+curl http://127.0.0.1:8765/api/save/status
+# 读当前值（绝对地址 = 槽1起点 + 0x24，例如 0x126474 + 0x24 = 0x126498）
+curl "http://127.0.0.1:8765/api/save/bytes?offset=0x126498&length=4"
+# 改 123456（注意：offset 参数可写 0x，但 JSON body 里不能写 0x 字面量！）
 curl -X POST http://127.0.0.1:8765/api/save/patch \
   -H "Content-Type: application/json" \
-  -d '{"offset": 36, "hex": "40 E2 01 00"}'
+  -d '{"offset": 1205400, "hex": "40 E2 01 00"}'   # 1205400 = 0x126498
 # 写回磁盘 → 用户复制到 3DS → 游戏内观察 → 用户反馈
 curl -X POST http://127.0.0.1:8765/api/save/write -d '{}'
 ```
@@ -152,8 +155,13 @@ python tools/diff.py save/before.bin save/after.bin --limit 100         # 两存
 
 ## 常见陷阱
 
-- **JSON 里不能写 `0x` 字面量**：patch 请求的 `offset` 字段用十进制（`0x24` → `36`）；
-  查询参数（`?offset=0x24`）才支持十六进制。
+- **⚠️ 偏移是「槽相对」的（VERIFIED 2026-08-15）**：`data/offsets.json` 里除
+  文件头（<0x20）外的偏移都是相对角色槽起点的。绝对地址 = 槽指针 + 偏移。
+  槽指针在文件头 0x10/0x14/0x18（u32 LE），`GET /api/save/status` 的 `slotPtrs`
+  已解析。直接按偏移表数字 patch 会改错位置！例：FUNDS_OFFSET 0x24 的绝对地址
+  是 0x126474(槽1) + 0x24 = 0x126498。
+- **JSON 里不能写 `0x` 字面量**：patch 请求的 `offset` 字段用十进制（`0x126498` → `1205400`）；
+  查询参数（`?offset=0x126498`）才支持十六进制。
 - **patch 的 bytes 数组是按字节序的原始字节**：uint32 LE 金钱 99999999 =
   `FF E0 F5 05`（低字节在前）。
 - **写回磁盘不可逆**：写回前先 `cp` 一份原始存档；或先 `patch apply --out` 到新文件。

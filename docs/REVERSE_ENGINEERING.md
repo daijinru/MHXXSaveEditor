@@ -86,26 +86,31 @@ curl -X POST http://127.0.0.1:8765/api/save/load \
 ### 1.3 最小研究流程示例（验证金钱偏移）
 
 > 目标：验证 `FUNDS_OFFSET = 0x24` 是否真的是金钱（uint32 LE）。
+> **2026-08-15 已验证 ✅**：0x24 是槽相对偏移，实测槽1基址+0x24 = 7683919 与游戏内一致。
 
 ```bash
-# ① 假设：0x24 处是 uint32 LE 金钱
-# ② 读取当前值
-curl "http://127.0.0.1:8765/api/save/bytes?offset=0x24&length=4"
-# → {"bytes": [E7, 03, 00, 00]}  → 0x000003E7 = 999
+# ① 假设：槽1基址 + 0x24 处是 uint32 LE 金钱
+# ② 先拿槽基址（slotPtrs[0] = 槽1起点，例如 0x126474）
+curl http://127.0.0.1:8765/api/save/status
+# → {"slotPtrs": [1205364, 2378804, 3552244], ...}  (0x126474 = 1205364)
 
-# ③ 实验：改成 123456
+# ③ 读取当前值（绝对地址 = 基址 + 0x24 = 0x126498）
+curl "http://127.0.0.1:8765/api/save/bytes?offset=0x126498&length=4"
+# → {"bytes": [4F, 3F, 75, 00]}  → 0x00753F4F = 7,683,919 ✓
+
+# ④ 实验：改成 123456（offset 用十进制！0x126498 = 1205400）
 curl -X POST http://127.0.0.1:8765/api/save/patch \
   -H "Content-Type: application/json" \
-  -d '{"offset": 36, "hex": "40 E2 01 00"}'
+  -d '{"offset": 1205400, "hex": "40 E2 01 00"}'
 # 0x0001E240 = 123456 ✓
 
-# ④ 写回 → 复制到 3DS → 进游戏看金钱是否 123456
+# ⑤ 写回 → 复制到 3DS → 进游戏看金钱是否 123456
 curl -X POST http://127.0.0.1:8765/api/save/write -d '{}'
 
-# ⑤ 游戏内确认 → 固化
+# ⑥ 游戏内确认 → 固化
 curl -X POST http://127.0.0.1:8765/api/knowledge/known-offsets \
   -H "Content-Type: application/json" \
-  -d '{"append": "| FUNDS_OFFSET | 0x24 | uint32 LE 金钱 (VERIFIED 2026-08-12 游戏内确认) |"}'
+  -d '{"append": "| FUNDS_OFFSET | +0x24 | 槽相对 u32 金钱 (VERIFIED 2026-08-15 游戏内确认) |"}'
 ```
 
 ---
@@ -128,12 +133,22 @@ curl -X POST http://127.0.0.1:8765/api/knowledge/known-offsets \
 | 0x04 | FIRST_CHAR_SLOT_USED | u8 | 槽位 1 是否启用 |
 | 0x05 | SECOND_CHAR_SLOT_USED | u8 | 槽位 2 |
 | 0x06 | THIRD_CHAR_SLOT_USED | u8 | 槽位 3 |
-| 0x10 | FIRST_CHARACTER_OFFSET | u32 | 角色 1 数据指针 |
-| 0x14 | SECOND_CHARACTER_OFFSET | u32 | 角色 2 数据指针 |
-| 0x18 | THIRD_CHARACTER_OFFSET | u32 | 角色 3 数据指针 |
-| 0x20 | PLAY_TIME_OFFSET | u32 | 游戏时间（只在存档界面显示） |
-| 0x24 | FUNDS_OFFSET | u32 | 金钱（只在存档界面显示） |
-| 0x28 | HUNTER_RANK_OFFSET | u16 | 猎人等级 |
+| 0x10 | FIRST_CHARACTER_OFFSET | u32 | 角色 1 数据指针（槽基址） |
+| 0x14 | SECOND_CHARACTER_OFFSET | u32 | 角色 2 数据指针（槽基址） |
+| 0x18 | THIRD_CHARACTER_OFFSET | u32 | 角色 3 数据指针（槽基址） |
+
+> **⚠️ 验证结论（2026-08-15）**：`0x20` 及之后的"偏移"全部是**相对角色槽基址**的，
+> 不是文件绝对偏移！绝对地址 = 槽基址 + 偏移。实测（槽1基址 0x126474）：
+
+| 槽相对偏移 | 名称 | 类型 | 实测值 | 说明 |
+|---|---|---|---|---|
+| +0x20 | PLAY_TIME_OFFSET | u32 | 38642 | 游玩秒数 ≈ 10.7h（只在存档界面显示） |
+| +0x24 | FUNDS_OFFSET | u32 | **7,683,919** | 金钱 ✓ 用户报 7683919z 吻合（界面显示值） |
+| +0x28 | HUNTER_RANK_OFFSET | u16 | **3** | 猎人等级 ✓ HR3 吻合 |
+| +0x280B | HR_POINTS_OFFSET | u32 | 5880 | 猎人点数 |
+| +0x280F | FUNDS_OFFSET2 | u32 | **7,683,919** | 金钱（游戏内数值，与 +0x24 一致） |
+| +0x2817 | ACADEMY_POINTS_OFFSET | u32 | 27520 | 学院点数 |
+| +0x281B | BHERNA_POINTS_OFFSET | u32 | 120 | 贝尔纳点数 |
 
 ### 2.3 角色数据（相对角色基址）
 
@@ -150,7 +165,8 @@ curl -X POST http://127.0.0.1:8765/api/knowledge/known-offsets \
 
 > 观察：上述 u8 字段在 0x23B48–0x23B4F 连续排列（间隔 1 字节），
 > 颜色字段为 4 字节。此布局为原编辑器字段顺序的推断，精确结构待研究（见 Backlog #9）。
-> 各据点数为独立绝对偏移：HR_POINTS 0x280B、ACADEMY 0x2817、BHERNA 0x281B、KOKOTO 0x281F、POKKE 0x2823、YUKUMO 0x2827（均 u32）。
+> 各据点数为**槽相对偏移**：HR_POINTS +0x280B、ACADEMY +0x2817、BHERNA +0x281B、
+> KOKOTO +0x281F、POKKE +0x2823、YUKUMO +0x2827（均 u32）。
 
 ### 2.4 大区块结构（已由原编辑器确认）
 
