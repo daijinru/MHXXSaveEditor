@@ -286,3 +286,9 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
+# ---- MHXX Web 平台: 用户数据与工作产物不入库 ----
+.workbuddy/memory/
+saves/
+data/extdata/
+experiments/*.bin
