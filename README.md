@@ -5,7 +5,7 @@ If you are looking for a MHXX save editor for the Switch version, please refer t
 And if you're looking for a MHGU save editor, please refer to [this](https://gbatemp.net/threads/mhgu-save-editor.515460/) instead. 
 
 <!-- 插入图片 -->
-![界面](./docs/20260815135153.png)
+![界面](./docs/20260815135154.png)
 
 ## Description
 
