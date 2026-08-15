@@ -29,13 +29,23 @@
       <span>已知偏移</span>
       <input id="offsetSearch" placeholder="搜索偏移名..." class="search">
     </div>
+    <div class="slot-bar" id="slotPicker" title="偏移表中的偏移是相对角色槽起点的, 选择槽位以计算绝对地址">
+      <span class="slot-label">解析槽:</span>
+      <button class="btn small slot-btn" data-slot="1">槽1</button>
+      <button class="btn small slot-btn" data-slot="2">槽2</button>
+      <button class="btn small slot-btn" data-slot="3">槽3</button>
+      <span id="slotBaseInfo" class="slot-base-info"></span>
+    </div>
     <div class="panel-body" id="offsetList"></div>
+    <div class="vresizer" data-target="offsetList" title="拖拽调整偏移表区域高度"></div>
     <div class="panel-head">
       <span>常量表 (ID→名称)</span>
       <input id="constSearch" placeholder="搜索表名..." class="search">
     </div>
     <div class="panel-body" id="constList"></div>
   </aside>
+
+  <div class="resizer" data-resizer="left" title="拖拽调整左栏宽度"></div>
 
   <!-- 中栏:Hex 查看器 -->
   <section class="panel" id="midPanel">
@@ -59,27 +69,36 @@
     <div class="panel-body hex-body" id="hexView"></div>
   </section>
 
+  <div class="resizer" data-resizer="right" title="拖拽调整右栏宽度"></div>
+
   <!-- 右栏:数值解析 + 研究面板 -->
   <aside class="panel" id="rightPanel">
     <div class="panel-head"><span>数值解析</span></div>
-    <div class="panel-body">
-      <div class="parse-row">
-        <input id="parseOffset" placeholder="偏移 (0x...)" class="search">
-        <select id="parseType">
-          <option value="u8">uint8</option>
-          <option value="u16">uint16 LE</option>
-          <option value="u32" selected>uint32 LE</option>
-          <option value="i32">int32 LE</option>
-          <option value="float">float LE</option>
-          <option value="str">string</option>
-        </select>
-        <button class="btn small" id="btnParse">解析</button>
+    <div class="panel-body" id="parseBody">
+      <div class="parse-box">
+        <input id="parseOffset" placeholder="槽偏移 如 0x24 (自动加槽基址)" class="search parse-input">
+        <div class="parse-controls">
+          <label class="abs-toggle" title="勾选后按文件绝对地址解析, 不自动加槽基址">
+            <input type="checkbox" id="parseAbsolute"> 绝对
+          </label>
+          <select id="parseType">
+            <option value="u8">uint8</option>
+            <option value="u16">uint16 LE</option>
+            <option value="u32" selected>uint32 LE</option>
+            <option value="i32">int32 LE</option>
+            <option value="float">float LE</option>
+            <option value="str">string</option>
+          </select>
+          <button class="btn small" id="btnParse">解析</button>
+        </div>
       </div>
       <div id="parseResult" class="parse-result"></div>
     </div>
+    <div class="vresizer" data-target="parseBody" title="拖拽调整数值解析区域高度"></div>
 
     <div class="panel-head"><span>实验记录</span><button class="btn small" id="btnNewExp">新建</button></div>
     <div class="panel-body" id="expList"><div class="hint">暂无实验</div></div>
+    <div class="vresizer" data-target="expList" title="拖拽调整实验记录区域高度"></div>
 
     <div class="panel-head"><span>知识库</span></div>
     <div class="panel-body" id="knowledgeBox">

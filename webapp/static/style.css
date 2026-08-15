@@ -65,15 +65,64 @@ header {
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ---------- layout ---------- */
-main { display: flex; flex: 1; min-height: 0; gap: 8px; padding: 8px; }
+main { display: flex; flex: 1; min-height: 0; padding: 8px 0; }
 
 .panel {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: 8px; display: flex; flex-direction: column; min-height: 0;
 }
-#leftPanel { width: 260px; flex: 0 0 260px; }
-#midPanel { flex: 1; }
-#rightPanel { width: 300px; flex: 0 0 300px; }
+#leftPanel { flex: 0 0 260px; min-width: 180px; max-width: 480px; }
+#midPanel { flex: 1; min-width: 240px; }
+#rightPanel { flex: 0 0 320px; min-width: 240px; max-width: 560px; }
+
+/* 面板内分区: 上下可拖拽 */
+#offsetList { flex: 3 1 40%; min-height: 80px; }
+#constList { flex: 2 1 30%; min-height: 80px; }
+#parseBody { flex: 0 0 auto; }
+#expList { flex: 1 1 30%; min-height: 80px; }
+#knowledgeBox { flex: 2 1 45%; min-height: 80px; }
+
+/* resizer */
+.resizer {
+  flex: 0 0 8px;
+  cursor: col-resize;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  transition: background .15s;
+}
+.resizer::after {
+  content: "";
+  display: block;
+  width: 2px; height: 28px;
+  border-radius: 1px;
+  background: var(--border);
+  transition: background .15s, height .15s;
+}
+.resizer:hover::after, .resizer.dragging::after {
+  background: var(--accent);
+  height: 45px;
+}
+
+/* 垂直分隔条 (面板内分区) */
+.vresizer {
+  flex: 0 0 8px;
+  cursor: row-resize;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  transition: background .15s;
+}
+.vresizer::after {
+  content: "";
+  display: block;
+  height: 2px; width: 28px;
+  border-radius: 1px;
+  background: var(--border);
+  transition: background .15s, width .15s;
+}
+.vresizer:hover::after, .vresizer.dragging::after {
+  background: var(--accent);
+  width: 45px;
+}
 
 .panel-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -89,6 +138,16 @@ main { display: flex; flex: 1; min-height: 0; gap: 8px; padding: 8px; }
 }
 .search:focus, .mini-input:focus { border-color: var(--accent); }
 .mini-input { width: 90px; font-family: var(--mono); }
+
+/* ---------- slot picker ---------- */
+.slot-bar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-bottom: 1px solid var(--border);
+  background: var(--bg-soft); font-size: 12px; flex: 0 0 auto;
+}
+.slot-label { color: var(--muted); font-size: 11px; }
+.slot-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.slot-base-info { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--accent); }
 
 /* ---------- offset list ---------- */
 .offset-item {
@@ -122,6 +181,16 @@ main { display: flex; flex: 1; min-height: 0; gap: 8px; padding: 8px; }
 .hex-byte { cursor: pointer; border-radius: 2px; padding: 0 1px; }
 .hex-byte:hover { background: var(--accent); color: #fff; }
 .hex-byte.changed { background: var(--changed); color: #92400e; }
+.hex-byte.flash {
+  background: var(--accent); color: #fff;
+  animation: hexflash 1.5s ease;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+@keyframes hexflash {
+  0%   { background: var(--accent); color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+  70%  { background: var(--accent); color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+  100% { background: transparent; color: inherit; box-shadow: none; }
+}
 .hex-row.selected .hex-byte.changed { background: var(--changed-border); }
 .hex-info { color: var(--muted); font-size: 12px; }
 
@@ -135,8 +204,14 @@ main { display: flex; flex: 1; min-height: 0; gap: 8px; padding: 8px; }
 .nav-controls { display: flex; align-items: center; gap: 6px; }
 
 /* ---------- right panel ---------- */
-.parse-row { display: flex; gap: 4px; margin-bottom: 6px; }
-.parse-row select { border: 1px solid var(--border); border-radius: 6px; padding: 3px; }
+.parse-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.parse-input { width: 100%; }
+.parse-controls { display: flex; align-items: center; gap: 6px; }
+.parse-controls select { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 3px 4px; }
+.parse-controls .btn { flex: 0 0 auto; }
+.abs-toggle { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.abs-toggle input { margin: 0; cursor: pointer; }
+.mono { font-family: var(--mono); word-break: break-all; }
 .parse-result {
   font-family: var(--mono); font-size: 12px; background: #f8f9fb;
   border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-bottom: 10px;
@@ -169,6 +244,8 @@ main { display: flex; flex: 1; min-height: 0; gap: 8px; padding: 8px; }
   position: fixed; inset: 0; background: rgba(15, 20, 30, .45);
   display: flex; align-items: center; justify-content: center; z-index: 100;
 }
+/* hidden 属性必须能压过 display:flex,否则弹窗无法隐藏 */
+.modal[hidden] { display: none; }
 .modal-box {
   background: var(--panel); border-radius: 10px; padding: 18px; width: 460px;
   max-width: 92vw; display: flex; flex-direction: column; gap: 10px;

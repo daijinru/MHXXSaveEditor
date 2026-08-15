@@ -8,6 +8,9 @@ let constants = {};
 let hexOffset = 0;
 let hexLength = 0x200;
 let changedBytes = new Set(); // 相对磁盘的修改偏移
+let pendingScroll = null; // 渲染后需要滚动定位到的绝对偏移
+let slotPtrs = [0, 0, 0];  // 三个角色槽的绝对起点 (文件头 0x10/0x14/0x18)
+let activeSlot = 1;        // 当前解析用的槽位 (1-3)
 
 const api = {
   async get(path) {
@@ -34,11 +37,19 @@ async function refreshStatus() {
     const s = await api.get("/api/save/status");
     const el = $("#saveStatus");
     if (s.loaded) {
+      slotPtrs = s.slotPtrs || [0, 0, 0];
+      // 默认解析第一个有内容的槽
+      const used = s.slots && s.slots.length ? s.slots[0] : 1;
+      if (!slotPtrs[activeSlot - 1]) activeSlot = used;
       el.textContent = `已加载 (${(s.size / 1048576).toFixed(2)} MB)${s.path ? " · " + s.path.split(/[\\/]/).pop() : ""}`;
       el.className = "status loaded";
+      updateSlotUI();
+      renderOffsets(offsets);
     } else {
+      slotPtrs = [0, 0, 0];
       el.textContent = "未加载";
       el.className = "status";
+      updateSlotUI();
     }
     return s;
   } catch (e) {
@@ -47,6 +58,25 @@ async function refreshStatus() {
     return { loaded: false };
   }
 }
+function slotBase() { return slotPtrs[activeSlot - 1] || 0; }
+function updateSlotUI() {
+  document.querySelectorAll(".slot-btn").forEach(b => {
+    const s = parseInt(b.dataset.slot, 10);
+    b.classList.toggle("active", s === activeSlot);
+    b.disabled = false;
+    b.title = slotPtrs[s - 1] ? `槽${s} 起点 0x${slotPtrs[s - 1].toString(16)}` : `槽${s} 无数据`;
+  });
+  const base = slotBase();
+  $("#slotBaseInfo").textContent = base ? `基址 0x${base.toString(16).toUpperCase()}` : "未加载存档";
+}
+// 槽选择
+document.querySelectorAll(".slot-btn").forEach(b => {
+  b.addEventListener("click", () => {
+    activeSlot = parseInt(b.dataset.slot, 10);
+    updateSlotUI();
+    renderOffsets(offsets);
+  });
+});
 
 /* ============ 偏移表 ============ */
 async function loadOffsets() {
@@ -60,22 +90,31 @@ async function loadOffsets() {
 function renderOffsets(list) {
   const box = $("#offsetList");
   box.innerHTML = "";
+  const base = slotBase();
   for (const o of list) {
     const el = document.createElement("div");
     el.className = "offset-item";
-    el.dataset.offset = o.offset;
+    const isAbs = o.offset < 0x20; // 文件头字段(槽指针/标志)是绝对偏移, 其余是槽相对
+    const absAddr = base && !isAbs ? base + o.offset : o.offset;
+    el.dataset.offset = absAddr;
     const desc = o.comment ? `<div class="desc">${escapeHtml(o.comment)}</div>` : "";
+    const addrLine = base && !isAbs
+      ? `<span class="addr">+0x${o.offset.toString(16).toUpperCase().padStart(2, "0")} → 0x${absAddr.toString(16).toUpperCase()}</span>`
+      : `<span class="addr">0x${o.offset.toString(16).toUpperCase().padStart(2, "0")}</span>`;
     el.innerHTML = `
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;gap:6px">
           <span class="name">${escapeHtml(o.name)}</span>
-          <span class="addr">0x${o.offset.toString(16).toUpperCase().padStart(2, "0")}</span>
+          ${addrLine}
         </div>${desc}
       </div>`;
     el.addEventListener("click", () => {
-      gotoOffset(o.offset);
+      gotoOffset(absAddr);
       document.querySelectorAll(".offset-item").forEach(x => x.classList.remove("active"));
       el.classList.add("active");
+      // 同步填入解析框: 槽相对字段填相对偏移, 文件头字段填绝对地址
+      $("#parseOffset").value = isAbs ? `0x${o.offset.toString(16)}` : `0x${o.offset.toString(16)}`;
+      $("#parseAbsolute").checked = isAbs;
     });
     box.appendChild(el);
   }
@@ -159,6 +198,16 @@ function renderHex(data) {
       <span class="hex-ascii">${escapeHtml(row.ascii)}</span>`;
     box.appendChild(div);
   }
+  // 跳转定位:滚动到目标字节并高亮闪烁
+  if (pendingScroll !== null) {
+    const target = box.querySelector(`[data-offset="${pendingScroll}"]`);
+    pendingScroll = null;
+    if (target) {
+      target.scrollIntoView({ block: "center", inline: "nearest" });
+      target.classList.add("flash");
+      setTimeout(() => target.classList.remove("flash"), 1500);
+    }
+  }
 }
 // 点击字节 = 打 1 字节补丁(改为 FF,方便快速实验)
 $("#hexView").addEventListener("click", async (e) => {
@@ -176,6 +225,7 @@ $("#hexView").addEventListener("click", async (e) => {
 
 function gotoOffset(off) {
   hexOffset = Math.max(0, off - (off % 16));
+  pendingScroll = off; // 渲染完成后滚动定位到该字节
   $("#gotoOffset").value = "0x" + off.toString(16);
   loadHex();
 }
@@ -213,9 +263,12 @@ $("#btnParse").addEventListener("click", async () => {
   const off = parseInt($("#parseOffset").value, 0);
   const type = $("#parseType").value;
   if (isNaN(off)) { alert("请输入偏移"); return; }
+  // 默认按槽相对偏移解析: 自动加当前槽基址; 勾选"绝对"则按文件绝对地址
+  const base = $("#parseAbsolute").checked ? 0 : slotBase();
+  const abs = base + off;
   try {
     const n = { u8: 1, u16: 2, u32: 4, i32: 4, float: 4, str: 32 }[type];
-    const { bytes } = await api.get(`/api/save/bytes?offset=${off}&length=${n}`);
+    const { bytes } = await api.get(`/api/save/bytes?offset=${abs}&length=${n}`);
     let out = "";
     const hex = bytes.map(b => b.toString(16).toUpperCase().padStart(2, "0")).join(" ");
     if (type === "u8") out = bytes[0];
@@ -225,7 +278,10 @@ $("#btnParse").addEventListener("click", async () => {
     else if (type === "float") { const buf = new ArrayBuffer(4); new Uint8Array(buf).set(bytes); out = new Float32Array(buf)[0]; }
     else out = String.fromCharCode(...bytes.filter(b => b >= 32 && b < 127));
     const el = $("#parseResult");
-    el.innerHTML = `<b>0x${off.toString(16).toUpperCase()}</b> [${type}]<br>hex: ${hex}<br>值: <b style="color:var(--accent)">${escapeHtml(String(out))}</b>`;
+    const addrStr = base
+      ? `槽${activeSlot}+0x${off.toString(16).toUpperCase()} → <b>0x${abs.toString(16).toUpperCase()}</b>`
+      : `绝对 <b>0x${abs.toString(16).toUpperCase()}</b>`;
+    el.innerHTML = `<div>${addrStr} [${type}]</div><div class="mono">hex: ${hex}</div><div>值: <b style="color:var(--accent)">${escapeHtml(String(out))}</b></div>`;
   } catch (e) { alert(e.message); }
 });
 
@@ -338,8 +394,101 @@ $("#btnSave").addEventListener("click", async () => {
   } catch (e) { alert(e.message); }
 });
 
+/* ============ 面板拖拽大小 ============ */
+function setupResizers() {
+  const LEFT_KEY = "mhxx.panel.left";
+  const RIGHT_KEY = "mhxx.panel.right";
+  const leftPanel = $("#leftPanel");
+  const rightPanel = $("#rightPanel");
+
+  const savedLeft = localStorage.getItem(LEFT_KEY);
+  const savedRight = localStorage.getItem(RIGHT_KEY);
+  if (savedLeft) leftPanel.style.flex = `0 0 ${parseInt(savedLeft, 10)}px`;
+  if (savedRight) rightPanel.style.flex = `0 0 ${parseInt(savedRight, 10)}px`;
+
+  document.querySelectorAll(".resizer").forEach(bar => {
+    bar.addEventListener("mousedown", (e) => {
+      const side = bar.dataset.resizer;
+      const panel = side === "left" ? leftPanel : rightPanel;
+      const startX = e.clientX;
+      const startW = panel.getBoundingClientRect().width;
+      bar.classList.add("dragging");
+      document.body.style.userSelect = "none";
+
+      function onMove(ev) {
+        const dx = ev.clientX - startX;
+        let newW = side === "left" ? startW + dx : startW - dx;
+        const min = side === "left" ? 180 : 240;
+        const max = side === "left" ? 480 : 560;
+        newW = Math.max(min, Math.min(max, newW));
+        panel.style.flex = `0 0 ${newW}px`;
+      }
+
+      function onUp() {
+        bar.classList.remove("dragging");
+        document.body.style.userSelect = "";
+        const w = Math.round(panel.getBoundingClientRect().width);
+        localStorage.setItem(side === "left" ? LEFT_KEY : RIGHT_KEY, String(w));
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      }
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  });
+}
+
+/* ============ 面板内分区上下拖拽 ============ */
+function setupVResizers() {
+  const KEYS = {
+    offsetList: "mhxx.v.offset",
+    parseBody: "mhxx.v.parse",
+    expList: "mhxx.v.exp",
+  };
+  // 恢复上次高度
+  for (const [id, key] of Object.entries(KEYS)) {
+    const v = localStorage.getItem(key);
+    if (v) {
+      const el = $("#" + id);
+      if (el) el.style.flex = `0 0 ${parseInt(v, 10)}px`;
+    }
+  }
+  document.querySelectorAll(".vresizer").forEach(bar => {
+    bar.addEventListener("mousedown", (e) => {
+      const target = $("#" + bar.dataset.target);
+      if (!target) return;
+      const startY = e.clientY;
+      const startH = target.getBoundingClientRect().height;
+      bar.classList.add("dragging");
+      document.body.style.userSelect = "none";
+
+      function onMove(ev) {
+        const dy = ev.clientY - startY;
+        const newH = Math.max(60, Math.min(600, startH + dy));
+        target.style.flex = `0 0 ${newH}px`;
+      }
+
+      function onUp() {
+        bar.classList.remove("dragging");
+        document.body.style.userSelect = "";
+        const h = Math.round(target.getBoundingClientRect().height);
+        const key = KEYS[bar.dataset.target];
+        if (key) localStorage.setItem(key, String(h));
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      }
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  });
+}
+
 /* ============ 初始化 ============ */
 (async function init() {
+  setupResizers();
+  setupVResizers();
   await refreshStatus();
   loadOffsets();
   loadConstTables();

@@ -177,6 +177,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(body)
 
@@ -246,6 +247,9 @@ class Handler(BaseHTTPRequestHandler):
                     "loaded": STATE.loaded,
                     "path": STATE.save_path,
                     "size": len(STATE.save_bytes) if STATE.save_bytes else 0,
+                    "slotPtrs": self._slot_ptrs(),
+                    "slots": [i + 1 for i in range(3)
+                              if STATE.loaded and STATE.save_bytes and STATE.save_bytes[4 + i] == 1],
                 })
             elif path == "/api/save/bytes":
                 self._handle_bytes(q)
@@ -363,6 +367,17 @@ class Handler(BaseHTTPRequestHandler):
     def _require_save(self):
         if not STATE.loaded or STATE.save_bytes is None:
             raise ValueError("尚未加载存档 (POST /api/save/load 或 /api/save/upload)")
+
+    @staticmethod
+    def _slot_ptrs():
+        """读取文件头 0x10/0x14/0x18 的三个角色槽绝对起点 (u32 LE)。"""
+        if not STATE.loaded or STATE.save_bytes is None:
+            return [0, 0, 0]
+        raw = STATE.save_bytes
+        if len(raw) < 0x1C:
+            return [0, 0, 0]
+        import struct
+        return [struct.unpack_from("<I", raw, 0x10 + i * 4)[0] for i in range(3)]
 
     @staticmethod
     def _to_int(v):
